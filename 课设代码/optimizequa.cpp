@@ -1,13 +1,63 @@
-#include "optimizequa.h"
+#include <iostream>
+#include <string>
+#include <string.h>
+#include <fstream>
+#include <list>
+#include <sstream>
+
+using namespace std;
+
+struct middle
+{//ÖĞ¼ä±äÁ¿
+    char x[10] = " ";
+    char y[10];
+};
+
+extern struct middle mi[50],dd[50];
+
+struct token
+{
+    string name;
+    int type;        //2ÎªÁÙÊ±±äÁ¿£¬3ÎªÕûĞÍ£¬1Îª·ÇÁÙÊ±±äÁ¿£¬4Îª¸¡µãĞÍ£¬¿ÕÎª0
+    bool operator == (const token& t) const             //list removeº¯ÊıÅĞ¶ÏÊÇ·ñÏàµÈ
+    {
+        return (name == t.name && type == t.type);
+    }
+};
+
+struct Quatemion        //ËÄÔªÊ½½á¹¹Ìå
+{
+    int block = 1;      //»ù±¾¿é±êÊ¶
+    int type = -1;      //ÀàĞÍ 0 1 2 3
+    string op = " ";    //²Ù×÷
+    token num1;         //²Ù×÷Êı1
+    token num2;         //²Ù×÷Êı2
+    token ans;          //½á¹û
+};
 
 struct Quatemion qua[200];  //ËÄÔªÊ½Êı×é
-int qua_num = 0;            //ËÄÔªÊ½¸öÊı
+int qua_num;                //ËÄÔªÊ½¸öÊı
 
-struct Quatemion qua_out[200];  //ËÄÔªÊ½Êı×é
-int out_num;
+struct Quatemion qua_out[200];  //ÓÅ»¯ºóËÄÔªÊ½Êı×é
+int out_num;                    //ÓÅ»¯ºóµÄËÄÔªÊ½¸öÊı
+
+struct Node                  //DAG½Úµã
+{
+    int left = -1;           //×ó×Ó½Úµã±êÊ¶
+    int right = -1;          //ÓÒ×Ó½Úµã±êÊ¶
+    string op = " ";         //²Ù×÷
+    token m_sign;            //Ö÷±ê¼Ç
+    list<token> sign;        //¸½¼Ó±ê¼Ç
+};
+
+struct DAG
+{
+    int num = 0;
+    Node node[200];
+};
 
 struct DAG dag;
-
+/*
 bool isim_var(string s)     //ÅĞ¶ÏÊÇ·ñÎªÖĞ¼ä±äÁ¿
 {
     string im_var[5] = { "t1","t2","t3","t4","t5" };
@@ -17,16 +67,27 @@ bool isim_var(string s)     //ÅĞ¶ÏÊÇ·ñÎªÖĞ¼ä±äÁ¿
             return true;
     }
     return false;
+}*/
+
+bool isim_var(string s,middle* mi)     //ÅĞ¶ÏÊÇ·ñÎªÖĞ¼ä±äÁ¿
+{
+    //string im_var[5] = { "t1","t2","t3","t4","t5" };
+    for (int i = 0; i < 50; i++)
+    {
+        if (strcmp(mi[i].x, s.c_str()) == 0)
+            return true;
+    }
+    return false;
 }
 
-bool isdight(string s)
+bool isdight(string s)              //ÅĞ¶ÏÊÇ·ñÎªÊı×Ö
 {
     if (s[0] <= '9' && s[0] >= '0')
         return true;
     return false;
 }
 
-bool isfloat(string s)
+bool isfloat(string s)              //ÅĞ¶ÏÊÇ·ñÎª¸¡µãĞÍ
 {
     for (unsigned int i = 0; i < s.size(); i++)
     {
@@ -68,7 +129,7 @@ void inputqua(Quatemion *qua,string fname,int& num)        //¸ù¾İÎÄ¼şÄÚÈİ¶ÁÈ¡ËÄÔ
         in >> next >> qua[i].num1.name;
         if (qua[i].num1.name == "_")
             qua[i].num1.type = 0;
-        else if (isim_var(qua[i].num1.name))
+        else if (isim_var(qua[i].num1.name,mi))
             qua[i].num1.type = 2;
         else if (isdight(qua[i].num1.name))
         {
@@ -82,7 +143,7 @@ void inputqua(Quatemion *qua,string fname,int& num)        //¸ù¾İÎÄ¼şÄÚÈİ¶ÁÈ¡ËÄÔ
         in >> next >> qua[i].num2.name;
         if (qua[i].num2.name == "_")
             qua[i].num2.type = 0;
-        else if (isim_var(qua[i].num2.name))
+        else if (isim_var(qua[i].num2.name,mi))
             qua[i].num2.type = 2;
         else if (isdight(qua[i].num2.name))
         {
@@ -96,7 +157,7 @@ void inputqua(Quatemion *qua,string fname,int& num)        //¸ù¾İÎÄ¼şÄÚÈİ¶ÁÈ¡ËÄÔ
         in >> next >> qua[i].ans.name;
         if (qua[i].ans.name == "_")
             qua[i].ans.type = 0;
-        else if (isim_var(qua[i].ans.name))
+        else if (isim_var(qua[i].ans.name,mi))
             qua[i].ans.type = 2;
         else if (isdight(qua[i].ans.name))
         {
@@ -116,13 +177,13 @@ void inputqua(Quatemion *qua,string fname,int& num)        //¸ù¾İÎÄ¼şÄÚÈİ¶ÁÈ¡ËÄÔ
     in.close();
 }
 
-void qua_out_pre(Quatemion* qua, Quatemion* qua_out, int num)
+void qua_out_pre(Quatemion* qua, Quatemion* qua_out, int num)   //Êä³öËÄÔªÊ½Ô¤´¦Àí
 {
     qua_out[0] = qua[0];
     qua_out[199] = qua[num - 1];
 }
 
-int judge_m_sign(token t)
+int judge_m_sign(token t)                       //ÅĞ¶ÏtÊÇ·ñÔÚÖ÷±ê¼Ç
 {
     for (int i = 0; i < dag.num; i++)
     {
@@ -132,7 +193,7 @@ int judge_m_sign(token t)
     return -1;
 }
 
-int judge_sign(token t)
+int judge_sign(token t)                 //ÅĞ¶ÏtÊÇ·ñÔÚ¸½¼Ó±ê¼Ç
 {
     list<token>::iterator p;
     for (int i = 0; i < dag.num; i++)
@@ -149,7 +210,7 @@ int judge_sign(token t)
     return -1;
 }
 
-void swapm_s(Node& n,token t)
+void swapm_s(Node& n,token t)                   //¸ù¾İÓÅÏÈ¼¶ÅĞ¶ÏÖ÷¸¶ÊÇ·ñĞèÒª½»»»
 {
     if (n.m_sign.type == 2 && t.type == 1)
     {
@@ -159,7 +220,7 @@ void swapm_s(Node& n,token t)
     }
 }
 
-void makequa(DAG dag,int& out_num)
+void makequa(DAG dag,int& out_num)              //¸ù¾İ»ù±¾¿éÉú³ÉËÄÔªÊ½
 {
     ofstream out;
     out_num = 1;
@@ -169,11 +230,28 @@ void makequa(DAG dag,int& out_num)
         cout << "´ò¿ªÎÄ¼ş³ö´í£¡" << endl;
         exit(1);
     }
+    cout << "( " << qua_out[0].op << " , " << qua_out[0].num1.name << " , ";
+    cout << qua_out[0].num2.name << " , " << qua_out[0].ans.name << " )" << endl;
     out << "( " << qua_out[0].op << " , " << qua_out[0].num1.name << " , ";
     out << qua_out[0].num2.name << " , " << qua_out[0].ans.name << " )" << endl;
     for (int i = 0; i < dag.num; i++)
     {
         list<token>::iterator p;
+        if (dag.node[i].left != -1 && dag.node[i].right != -1)                      //¶ÔÓÚ·ÇÒ¶×Ó½Úµã
+        {
+            cout << "( " << dag.node[i].op << " , " << dag.node[dag.node[i].left].m_sign.name;
+            cout << " , " << dag.node[dag.node[i].right].m_sign.name << " , " << dag.node[i].m_sign.name;
+            cout << " )" << endl;
+            out << "( " << dag.node[i].op << " , " << dag.node[dag.node[i].left].m_sign.name;
+            out << " , " << dag.node[dag.node[i].right].m_sign.name << " , " << dag.node[i].m_sign.name;
+            out << " )" << endl;
+            qua_out[out_num].op = dag.node[i].op;
+            qua_out[out_num].type = 1;
+            qua_out[out_num].num1 = dag.node[dag.node[i].left].m_sign;
+            qua_out[out_num].num2 = dag.node[dag.node[i].right].m_sign;
+            qua_out[out_num].ans = dag.node[i].m_sign;
+            out_num++;
+        }
         if (!dag.node[i].sign.empty())
         {
             for (p = dag.node[i].sign.begin(); p != dag.node[i].sign.end(); ++p)
@@ -194,28 +272,15 @@ void makequa(DAG dag,int& out_num)
                 }
             }
         }
-        if (dag.node[i].left != -1 && dag.node[i].right != -1)                      //¶ÔÓÚ·ÇÒ¶×Ó½Úµã
-        {
-            cout << "( " << dag.node[i].op << " , " << dag.node[dag.node[i].left].m_sign.name;
-            cout << " , " << dag.node[dag.node[i].right].m_sign.name << " , " << dag.node[i].m_sign.name;
-            cout << " )" << endl;
-            out << "( " << dag.node[i].op << " , " << dag.node[dag.node[i].left].m_sign.name;
-            out << " , " << dag.node[dag.node[i].right].m_sign.name << " , " << dag.node[i].m_sign.name;
-            out << " )" << endl;
-            qua_out[out_num].op = dag.node[i].op;
-            qua_out[out_num].type = 1;
-            qua_out[out_num].num1 = dag.node[dag.node[i].left].m_sign;
-            qua_out[out_num].num2 = dag.node[dag.node[i].right].m_sign;
-            qua_out[out_num].ans = dag.node[i].m_sign;
-            out_num++;
-        }
     }
+    cout << "( " << qua_out[199].op << " , " << qua_out[199].num1.name << " , ";
+    cout << qua_out[199].num2.name << " , " << qua_out[199].ans.name << " )" << endl;
     out << "( " << qua_out[199].op << " , " << qua_out[199].num1.name << " , ";
     out << qua_out[199].num2.name << " , " << qua_out[199].ans.name << " )";
     out.close();
 }
 
-void optimizequa(int block_num,DAG& dag)
+void optimizequa(int block_num,DAG& dag)                //ÓÅ»¯ËÄÔªÊ½º¯Êı£¬¹¹½¨DAG
 {
     for (int i = 1; i <= block_num; i++)
     {
@@ -230,7 +295,7 @@ void optimizequa(int block_num,DAG& dag)
                 int ss = judge_sign(qua[j].num1);
                 //cout << "OK" << endl;
                 int m_s = judge_m_sign(qua[j].num1);
-                if (s != -1)                           //ÅĞ¶ÏAÊÇ·ñÔÚ¸½¼Ó±ê¼ÇÖĞ£¬ÊÇÔòÉ¾³ı         
+                if (s != -1)                           //ÅĞ¶ÏAÊÇ·ñÔÚ¸½¼Ó±ê¼ÇÖĞ£¬ÊÇÔòÉ¾³ı
                 {
                     dag.node[s].sign.remove(qua[j].ans);
                 }
@@ -299,7 +364,7 @@ void optimizequa(int block_num,DAG& dag)
                     p.type = 3;
                     string s1 = qua[j].num1.name;
                     string s2 = qua[j].num2.name;
-                    //int n1, n2; 
+                    //int n1, n2;
                     if (qua[j].op == "+")
                         p.name = to_string(stoi(s1) + stoi(s2));
                     else if (qua[j].op == "-")
@@ -330,7 +395,7 @@ void optimizequa(int block_num,DAG& dag)
                         if (dag.node[i].op == qua[j].op && l != -1 && r != -1)  //ÊÇ·ñÒÑÓĞB op CÕâÑùµÄ½Úµã
                         {
                             if ((dag.node[l].m_sign == qua[j].num1 || judge_sign(qua[j].num1)==l)
-                                && (dag.node[r].m_sign == qua[j].num2)||judge_sign(qua[j].num2)==r)
+                                && (dag.node[r].m_sign == qua[j].num2||judge_sign(qua[j].num2)==r))
                             {
                                 dag.node[i].sign.push_back(qua[j].ans);         //´æÔÚÔò½«AÌí¼ÓÖÁ½Ú¸½¼Ó±ê¼Ç
                                 swapm_s(dag.node[i], qua[j].ans);
@@ -340,7 +405,7 @@ void optimizequa(int block_num,DAG& dag)
                     }
                     if(flag)
                     {
-                        dag.node[dag.num].m_sign = qua[j].ans;
+                        dag.node[dag.num].m_sign = qua[j].ans;                  //²»´æÔÚÔòĞÂ½¨
                         dag.node[dag.num].op = qua[j].op;
                         if (judge_sign(qua[j].num1) != -1)
                             dag.node[dag.num].left = judge_sign(qua[j].num1);
