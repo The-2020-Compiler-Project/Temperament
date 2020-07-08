@@ -1,0 +1,12 @@
+LD R,10
+ADD R,b
+ST R,a
+ADD R,b
+ST R,t3
+DIV R,2
+ST R,t4
+MUL R,5
+ST R,b
+LD R,c
+MUL R,2.5
+ST R,d
