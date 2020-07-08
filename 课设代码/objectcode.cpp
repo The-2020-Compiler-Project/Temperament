@@ -27,28 +27,8 @@ struct Quatemion        //四元式结构体
 	token ans;          //结果
 };
 
-extern struct Quatemion qua[200];  //四元式数组
-extern int qua_num;                //四元式个数
-
 extern struct Quatemion qua_out[200];  //优化后四元式数组
 extern int out_num;                //优化后的四元式个数
-
-struct Node             //DAG节点
-{
-	int left = -1;           //左子节点标识
-	int right = -1;          //右子节点标识
-	string op = " ";          //操作
-	token m_sign;       //主标记
-	list<token> sign;     //附加标记
-};
-
-struct DAG
-{
-	int num = 0;
-	Node node[200];
-};
-
-extern struct DAG dag;
 
 struct ACT_INF
 {
@@ -277,68 +257,17 @@ void make_objectcode(Quatemion* qua_out, ACT_INF* actinf, int num,string* RDV)
 	out.close();
 }
 
-extern void inputqua(Quatemion* qua, string fname, int& num);
-
-extern void qua_out_pre(Quatemion* qua, Quatemion* qua_out, int num);
-
-extern void optimizequa(int block_num, DAG& dag);
-
-class yuyi
+void objectcode_main()
 {
-public:
-    void doit();
-    int saomiao();
-    int fanyi();
-    int fuzhi();
-    int jieshu();
-    char *program();
-    char *chengchu();
-    char *xuan();
-    char *jiajian();
-    char *newt();
-    void zhongj();
-    void four(const char* op,const char* ag1,const char* ag2,const char* res);
-private:
-    char prog[10000],ht[10000],ch,tt;
-    int cot,p,m,n,sum,ii,N,t,ppt;
-    int kk=0,lg=0,k=0,i=0,dian=0,mid=0,midd=0;
-    const char* key[7] = {"begin","program","var","real","integer","char","end"};
-};
-extern yuyi y;
-/*
-int main()
-{
-	//yuyi y;
-	y.doit();
-	cout << endl;
-    for(int i=0;dd[i].x[0]!=' ';i++)
-        printf("%s %s\n",dd[i].x,dd[i].y);
-    for(int i=0;mi[i].x[0]!=' ';i++)
-        printf("%s %s\n",mi[i].x,mi[i].y);
-	string fname = "output.txt";
-	//string fname = "optimizequa_test_in.txt";
-	inputqua(qua, fname, qua_num);
-	//cout << qua[2].ans.type << endl;
-	qua_out_pre(qua, qua_out, qua_num);
-	for (int i = 0; qua[i].op != " "; i++)
-	{
-		cout << "( " << qua[i].op << " , " << qua[i].num1.name;
-		cout << " , " << qua[i].num2.name << " , " << qua[i].ans.name;
-		cout << " )" << endl;
-	}
-	cout << "优化后：" << endl;
-	optimizequa(1, dag);
 	get_act_inf(Act_synbl, actinf, qua_out, out_num);
-	cout << "活跃信息：" << endl;
+	cout << endl << "活跃信息：" << endl;
 	for (int i = 1; i < out_num; i++)
 	{
 		cout << qua_out[i].num1.name << "," << actinf[i].num1 << "  ";
 		cout << qua_out[i].num2.name << "," << actinf[i].num2 << "  ";
 		cout << qua_out[i].ans.name << "," << actinf[i].ans << endl;
 	}
-	cout << "目标代码：" << endl;
+	cout << endl << "目标代码：" << endl;
 	make_objectcode(qua_out, actinf, out_num, RDV);
-	return 0;
 }
 
-*/
