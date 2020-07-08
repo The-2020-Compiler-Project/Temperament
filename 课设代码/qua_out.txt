@@ -1,0 +1,7 @@
+( program , example , _ , _ )
+( + , 10 , b , a )
+( + , a , b , t3 )
+( / , t3 , 2 , t4 )
+( * , t4 , 5 , b )
+( * , c , 2.5 , d )
+( end , example , _ , _ )
