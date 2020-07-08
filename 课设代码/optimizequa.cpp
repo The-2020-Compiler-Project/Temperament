@@ -69,6 +69,29 @@ bool isim_var(string s)     //判断是否为中间变量
     return false;
 }*/
 
+void indd(string s,middle* dd,middle* mi)         //判断中间变量是否在变量表中,若不在则加入
+{
+    int i,j,flag=1;
+    for(i=0;strcmp(dd[i].x," ")!=0;i++)
+    {
+        if(strcmp(s.c_str(),dd[i].x)==0)
+        {
+            flag=0;
+            break;
+        }
+    }
+    if(flag)
+    {
+        for(j=0;strcmp(mi[j].x," ")!=0;j++)
+        {
+            if(strcmp(s.c_str(),mi[j].x)==0)
+                break;
+        }
+        strcpy(dd[i].x,s.c_str());
+        strcpy(dd[i].y,mi[j].y);
+    }
+}
+
 bool isim_var(string s,middle* mi)     //判断是否为中间变量
 {
     //string im_var[5] = { "t1","t2","t3","t4","t5" };
@@ -439,21 +462,42 @@ void optimizequa(int block_num,DAG& dag)                //优化四元式函数，构建DA
         makequa(dag,out_num);
     }
 }
-/*
-int main()
+
+void make_Sytab(Quatemion *qua_out,int out_num,middle* dd,middle* mi)
 {
-    string fname = "optimizequa_test_in.txt";
-    inputqua(qua,fname,qua_num);
-    //cout << qua[2].ans.type << endl;
-    qua_out_pre(qua, qua_out, qua_num);
-    for (int i = 0; qua[i].op != " "; i++)
+    FILE *fp;
+    for(int i=1;i<out_num;i++)
     {
-        cout << "( " << qua[i].op << " , " << qua[i].num1.name;
-        cout << " , " << qua[i].num2.name << " , " << qua[i].ans.name;
-        cout << " )" << endl;
+        if(qua_out[i].type==0||qua_out[i].type==1)
+        {
+            if(qua_out[i].num1.type==2)
+                indd(qua_out[i].num1.name,dd,mi);
+            if(qua_out[i].num2.type==2)
+                indd(qua_out[i].num2.name,dd,mi);
+            if(qua_out[i].ans.type==2)
+                indd(qua_out[i].ans.name,dd,mi);
+        }
     }
-    cout << "优化后：" << endl;
-    optimizequa(1, dag);
-    return 0;
+    if(!(fp=fopen("SyTab.txt","ab")))
+    {
+        cout << "打开文件失败" << endl;
+        exit(1);
+    }
+    for(int i=0;strcmp(dd[i].x," ")!=0;i++)
+    {
+        fprintf(fp,"%s %s\n",dd[i].x,dd[i].y);
+    }
+    fclose(fp);
 }
-*/
+
+void optimizequa_main()
+{
+    string fname = "output.txt";
+	//string fname = "optimizequa_test_in.txt";
+	inputqua(qua, fname, qua_num);
+	//cout << qua[2].ans.type << endl;
+	qua_out_pre(qua, qua_out, qua_num);
+	cout << endl << "中间代码优化：" << endl;
+	optimizequa(1, dag);
+	make_Sytab(qua_out,out_num,dd,mi);
+}
