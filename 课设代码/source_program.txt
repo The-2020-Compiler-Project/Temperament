@@ -1,0 +1,10 @@
+program example 
+    var a,b :  integer ;   //声明语句
+    var c,d:real ; 
+    var e:char ; 
+    begin 
+        a:=2*5 ;	/*可优化*/
+        a:=a+b ;
+        b:=(a+b)/2*5;
+        d:=c*2.5 ;
+    end
