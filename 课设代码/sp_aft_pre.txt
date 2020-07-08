@@ -1,0 +1,1 @@
+program example     var a,b :  integer ;       var c,d:real ;     var e:char ;     begin         a:=2*5 ;        a:=a+b ;        b:=(a+b)/2*5;        d:=c*2.5 ;    end
