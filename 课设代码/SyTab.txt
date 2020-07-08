@@ -1,0 +1,8 @@
+example p
+a integer
+b integer
+c real
+d real
+e char
+t3 integer
+t4 integer
