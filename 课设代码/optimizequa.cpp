@@ -41,6 +41,9 @@ int qua_num;                //四元式个数
 struct Quatemion qua_out[200];  //优化后四元式数组
 int out_num;                    //优化后的四元式个数
 
+struct Quatemion qua_out2[200]; //循环优化的辅助数组
+int out_num2;
+
 struct Node                  //DAG节点
 {
     int left = -1;           //左子节点标识
@@ -57,6 +60,18 @@ struct DAG
 };
 
 struct DAG dag;
+
+void clearDAG(DAG& dag)         //清空DAG
+{
+    for(int i=0;i<dag.num;i++)
+    {
+        dag.node[i].left=-1;
+        dag.node[i].right=-1;
+        dag.node[i].op=" ";
+        dag.node[i].sign.clear();
+    }
+    dag.num=0;
+}
 /*
 bool isim_var(string s)     //判断是否为中间变量
 {
@@ -68,6 +83,35 @@ bool isim_var(string s)     //判断是否为中间变量
     }
     return false;
 }*/
+
+bool isquaeq(Quatemion* qua_out,Quatemion* qua_out2,int out_num,int out_num2) //判断两个四元式数组内容是否相同
+{
+    if(out_num2!=out_num)
+        return false;
+    else
+    {
+        for(int i=1;i<out_num;i++)
+        {
+            if(qua_out[i].op!=qua_out2[i].op || qua_out[i].num1.name!=qua_out2[i].num1.name
+               || qua_out[i].num2.name!=qua_out2[i].num2.name || qua_out2[i].ans.name!=qua_out[i].ans.name)
+                return false;
+        }
+    }
+    return true;
+}
+
+void qua_ass(Quatemion* qua_out,Quatemion* qua_out2,int& out_num,int out_num2)
+{
+    for(int i=1;i<out_num2;i++)
+    {
+        qua_out[i].op=qua_out2[i].op;
+        qua_out[i].num1=qua_out2[i].num1;
+        qua_out[i].num2=qua_out2[i].num2;
+        qua_out[i].ans =qua_out2[i].ans;
+        qua_out[i].type=qua_out2[i].type;
+    }
+    out_num=out_num2;
+}
 
 void indd(string s,middle* dd,middle* mi)         //判断中间变量是否在变量表中,若不在则加入
 {
@@ -243,31 +287,14 @@ void swapm_s(Node& n,token t)                   //根据优先级判断主付是否需要交换
     }
 }
 
-void makequa(DAG dag,int& out_num)              //根据基本块生成四元式
+void makequa(DAG dag,int& out_num,Quatemion* qua_out)              //根据基本块生成四元式
 {
-    ofstream out;
     out_num = 1;
-    out.open("qua_out.txt");
-    if (!out)
-    {
-        cout << "打开文件出错！" << endl;
-        exit(1);
-    }
-    cout << "( " << qua_out[0].op << " , " << qua_out[0].num1.name << " , ";
-    cout << qua_out[0].num2.name << " , " << qua_out[0].ans.name << " )" << endl;
-    out << "( " << qua_out[0].op << " , " << qua_out[0].num1.name << " , ";
-    out << qua_out[0].num2.name << " , " << qua_out[0].ans.name << " )" << endl;
     for (int i = 0; i < dag.num; i++)
     {
         list<token>::iterator p;
         if (dag.node[i].left != -1 && dag.node[i].right != -1)                      //对于非叶子节点
         {
-            cout << "( " << dag.node[i].op << " , " << dag.node[dag.node[i].left].m_sign.name;
-            cout << " , " << dag.node[dag.node[i].right].m_sign.name << " , " << dag.node[i].m_sign.name;
-            cout << " )" << endl;
-            out << "( " << dag.node[i].op << " , " << dag.node[dag.node[i].left].m_sign.name;
-            out << " , " << dag.node[dag.node[i].right].m_sign.name << " , " << dag.node[i].m_sign.name;
-            out << " )" << endl;
             qua_out[out_num].op = dag.node[i].op;
             qua_out[out_num].type = 1;
             qua_out[out_num].num1 = dag.node[dag.node[i].left].m_sign;
@@ -281,10 +308,6 @@ void makequa(DAG dag,int& out_num)              //根据基本块生成四元式
             {
                 if ((*p).type == 1)
                 {
-                    cout << "( " << ":= , " << dag.node[i].m_sign.name << " , ";
-                    cout << "_ , " << (*p).name << " )" << endl;
-                    out << "( " << ":= , " << dag.node[i].m_sign.name << " , ";
-                    out << "_ , " << (*p).name << " )" << endl;
                     qua_out[out_num].ans = *p;
                     qua_out[out_num].op = ":=";
                     qua_out[out_num].num1 = dag.node[i].m_sign;
@@ -296,171 +319,193 @@ void makequa(DAG dag,int& out_num)              //根据基本块生成四元式
             }
         }
     }
-    cout << "( " << qua_out[199].op << " , " << qua_out[199].num1.name << " , ";
-    cout << qua_out[199].num2.name << " , " << qua_out[199].ans.name << " )" << endl;
+}
+
+void qua_output(Quatemion* qua_out,int out_num)
+{
+    ofstream out;
+    out.open("qua_out.txt");
+    if (!out)
+    {
+        cout << "打开文件出错！" << endl;
+        exit(1);
+    }
+    for(int i=0;i<out_num;i++)
+    {
+        out << "( " << qua_out[i].op << " , " << qua_out[i].num1.name << " , ";
+        out << qua_out[i].num2.name << " , " << qua_out[i].ans.name << " )" << endl;
+    }
     out << "( " << qua_out[199].op << " , " << qua_out[199].num1.name << " , ";
     out << qua_out[199].num2.name << " , " << qua_out[199].ans.name << " )";
     out.close();
 }
 
-void optimizequa(int block_num,DAG& dag)                //优化四元式函数，构建DAG
+void qua_output_s(Quatemion* qua_out,int out_num)
 {
-    for (int i = 1; i <= block_num; i++)
+    for(int i=0;i<out_num;i++)
     {
-        int j = 0;
-        dag.num = 0;
-        while (qua[j].op!=" "&&qua[j].block==i)
+        cout << "( " << qua_out[i].op << " , " << qua_out[i].num1.name << " , ";
+        cout << qua_out[i].num2.name << " , " << qua_out[i].ans.name << " )" << endl;
+    }
+    cout << "( " << qua_out[199].op << " , " << qua_out[199].num1.name << " , ";
+    cout << qua_out[199].num2.name << " , " << qua_out[199].ans.name << " )" << endl;
+}
+
+void optimizequa(Quatemion *qua,DAG& dag,int num)                //优化四元式函数，构建DAG
+{
+    int j = 0;
+    clearDAG(dag);
+    //dag.num = 0;
+    while (j<num)
+    {
+        if(qua[j].type==0)                         //(=,B,_,A)
         {
-            if(qua[j].type==0)                         //(=,B,_,A)
+            int s = judge_sign(qua[j].ans);
+            //cout << "OK" << endl;
+            int ss = judge_sign(qua[j].num1);
+            //cout << "OK" << endl;
+            int m_s = judge_m_sign(qua[j].num1);
+            if (s != -1)                           //判断A是否在附加标记中，是则删除
             {
-                int s = judge_sign(qua[j].ans);
-                //cout << "OK" << endl;
-                int ss = judge_sign(qua[j].num1);
-                //cout << "OK" << endl;
-                int m_s = judge_m_sign(qua[j].num1);
-                if (s != -1)                           //判断A是否在附加标记中，是则删除
-                {
-                    dag.node[s].sign.remove(qua[j].ans);
-                }
-                if (m_s == -1 && ss == -1)
-                {
-                    dag.node[dag.num].m_sign = qua[j].num1;
-                    dag.node[dag.num].sign.push_back(qua[j].ans);
-                    swapm_s(dag.node[dag.num], qua[j].ans);
-                    dag.num++;
-                }
-                else
-                {
-                    if (m_s != -1)
-                    {
-                        dag.node[m_s].sign.push_back(qua[j].ans);
-                        swapm_s(dag.node[m_s], qua[j].ans);
-                    }
-                    else
-                    {
-                        dag.node[ss].sign.push_back(qua[j].ans);
-                        swapm_s(dag.node[ss], qua[j].ans);
-                    }
-                }
-                /*
+                dag.node[s].sign.remove(qua[j].ans);
+            }
+            if (m_s == -1 && ss == -1)
+            {
+                dag.node[dag.num].m_sign = qua[j].num1;
+                dag.node[dag.num].sign.push_back(qua[j].ans);
+                swapm_s(dag.node[dag.num], qua[j].ans);
+                dag.num++;
+            }
+            else
+            {
                 if (m_s != -1)
                 {
                     dag.node[m_s].sign.push_back(qua[j].ans);
                     swapm_s(dag.node[m_s], qua[j].ans);
                 }
-                else if (ss != 1)
+                else
                 {
                     dag.node[ss].sign.push_back(qua[j].ans);
                     swapm_s(dag.node[ss], qua[j].ans);
                 }
-                else
-                {
-                    cout << "OK" << endl;
-                    dag.node[dag.num].m_sign = qua[j].num1;
-                    dag.node[dag.num].sign.push_back(qua[j].ans);
-                    swapm_s(dag.node[dag.num], qua[j].ans);
-                    dag.num++;
-                }
-                */
             }
-            if(qua[j].type==1)                         //(op,B,C,A)
+            /*
+            if (m_s != -1)
             {
-                int m_s1 = judge_m_sign(qua[j].num1);       //先判断B,C节点是否存在，不存在则建立
-                int m_s2 = judge_m_sign(qua[j].num2);
-                int s1 = judge_sign(qua[j].num1);
-                int s2 = judge_sign(qua[j].num2);
-                if (m_s1 == -1 && s1 == -1)
+                dag.node[m_s].sign.push_back(qua[j].ans);
+                swapm_s(dag.node[m_s], qua[j].ans);
+            }
+            else if (ss != 1)
+            {
+                dag.node[ss].sign.push_back(qua[j].ans);
+                swapm_s(dag.node[ss], qua[j].ans);
+            }
+            else
+            {
+                cout << "OK" << endl;
+                dag.node[dag.num].m_sign = qua[j].num1;
+                dag.node[dag.num].sign.push_back(qua[j].ans);
+                swapm_s(dag.node[dag.num], qua[j].ans);
+                dag.num++;
+            }
+            */
+        }
+        if(qua[j].type==1)                         //(op,B,C,A)
+        {
+            int m_s1 = judge_m_sign(qua[j].num1);       //先判断B,C节点是否存在，不存在则建立
+            int m_s2 = judge_m_sign(qua[j].num2);
+            int s1 = judge_sign(qua[j].num1);
+            int s2 = judge_sign(qua[j].num2);
+            if (m_s1 == -1 && s1 == -1)
+            {
+                dag.node[dag.num].m_sign = qua[j].num1;
+                m_s1 = dag.num;
+                dag.num++;
+            }
+            if (m_s2 == -1 && s2 == -1)
+            {
+                dag.node[dag.num].m_sign = qua[j].num2;
+                m_s2 = dag.num;
+                dag.num++;
+            }
+            if (qua[j] .num1.type>=3 && qua[j].num2.type >= 3) //操作数都是常数
+            {
+                token p;
+                p.type = 3;
+                string s1 = qua[j].num1.name;
+                string s2 = qua[j].num2.name;
+                //int n1, n2;
+                if (qua[j].op == "+")
+                    p.name = to_string(stoi(s1) + stoi(s2));
+                else if (qua[j].op == "-")
+                    p.name = to_string(stoi(s1) - stoi(s2));
+                else if (qua[j].op == "*")
+                    p.name = to_string(stoi(s1) * stoi(s2));
+                else
+                    p.name = to_string(stoi(s1) / stoi(s2));
+                int m = judge_m_sign(p);
+                if (m == -1)                                        //p不存在则新建
                 {
-                    dag.node[dag.num].m_sign = qua[j].num1;
-                    m_s1 = dag.num;
-                    dag.num++;
+                    dag.node[dag.num].m_sign = p;
+                    m = dag.num;
                 }
-                if (m_s2 == -1 && s2 == -1)
+                if (judge_sign(qua[j].ans) != -1)                   //判断A是否存在且为附加标记，是则删去
+                    dag.node[judge_sign(qua[j].ans)].sign.remove(qua[j].ans);
+                dag.node[m].sign.push_back(qua[j].ans);             //将A添加至p附加标记
+                dag.num++;
+            }
+            else                                                    //不都为常数
+            {
+                if (judge_sign(qua[j].ans) != -1)                   //判断A是否存在且为附加标记，是则删去
+                    dag.node[judge_sign(qua[j].ans)].sign.remove(qua[j].ans);
+                int flag = 1;
+                for (int i = 0; i < dag.num; i++)
                 {
-                    dag.node[dag.num].m_sign = qua[j].num2;
-                    m_s2 = dag.num;
-                    dag.num++;
-                }
-                if (qua[j] .num1.type>=3 && qua[j].num2.type >= 3) //操作数都是常数
-                {
-                    token p;
-                    p.type = 3;
-                    string s1 = qua[j].num1.name;
-                    string s2 = qua[j].num2.name;
-                    //int n1, n2;
-                    if (qua[j].op == "+")
-                        p.name = to_string(stoi(s1) + stoi(s2));
-                    else if (qua[j].op == "-")
-                        p.name = to_string(stoi(s1) - stoi(s2));
-                    else if (qua[j].op == "*")
-                        p.name = to_string(stoi(s1) * stoi(s2));
-                    else
-                        p.name = to_string(stoi(s1) / stoi(s2));
-                    int m = judge_m_sign(p);
-                    if (m == -1)                                        //p不存在则新建
+                    int l = dag.node[i].left, r = dag.node[i].right;
+                    if (dag.node[i].op == qua[j].op && l != -1 && r != -1)  //是否已有B op C这样的节点
                     {
-                        dag.node[dag.num].m_sign = p;
-                        m = dag.num;
-                    }
-                    if (judge_sign(qua[j].ans) != -1)                   //判断A是否存在且为附加标记，是则删去
-                        dag.node[judge_sign(qua[j].ans)].sign.remove(qua[j].ans);
-                    dag.node[m].sign.push_back(qua[j].ans);             //将A添加至p附加标记
-                    dag.num++;
-                }
-                else                                                    //不都为常数
-                {
-                    if (judge_sign(qua[j].ans) != -1)                   //判断A是否存在且为附加标记，是则删去
-                        dag.node[judge_sign(qua[j].ans)].sign.remove(qua[j].ans);
-                    int flag = 1;
-                    for (int i = 0; i < dag.num; i++)
-                    {
-                        int l = dag.node[i].left, r = dag.node[i].right;
-                        if (dag.node[i].op == qua[j].op && l != -1 && r != -1)  //是否已有B op C这样的节点
+                        if ((dag.node[l].m_sign == qua[j].num1 || judge_sign(qua[j].num1)==l)
+                            && (dag.node[r].m_sign == qua[j].num2||judge_sign(qua[j].num2)==r))
                         {
-                            if ((dag.node[l].m_sign == qua[j].num1 || judge_sign(qua[j].num1)==l)
-                                && (dag.node[r].m_sign == qua[j].num2||judge_sign(qua[j].num2)==r))
-                            {
-                                dag.node[i].sign.push_back(qua[j].ans);         //存在则将A添加至节附加标记
-                                swapm_s(dag.node[i], qua[j].ans);
-                                flag = 0;
-                            }
+                            dag.node[i].sign.push_back(qua[j].ans);         //存在则将A添加至节附加标记
+                            swapm_s(dag.node[i], qua[j].ans);
+                            flag = 0;
                         }
                     }
-                    if(flag)
-                    {
-                        dag.node[dag.num].m_sign = qua[j].ans;                  //不存在则新建
-                        dag.node[dag.num].op = qua[j].op;
-                        if (judge_sign(qua[j].num1) != -1)
-                            dag.node[dag.num].left = judge_sign(qua[j].num1);
-                        else
-                            dag.node[dag.num].left = judge_m_sign(qua[j].num1);
-                        if (judge_sign(qua[j].num2) != -1)
-                            dag.node[dag.num].right = judge_sign(qua[j].num2);
-                        else
-                            dag.node[dag.num].right = judge_m_sign(qua[j].num2);
-                        dag.num++;
-                    }
                 }
-            }
-            //cout << dag.num << endl;
-            //if (j == 1) break;
-            j++;
-        }
-        /*if (dag.num > 2)
-        {
-            cout << dag.node[2].m_sign.name << endl;
-            if (!dag.node[2].sign.empty())
-            {
-                list<token>::iterator p;
-                for (p = dag.node[2].sign.begin(); p != dag.node[2].sign.end(); ++p)
+                if(flag)
                 {
-                    cout << (*p).name << " " << (*p).type << endl;
+                    dag.node[dag.num].m_sign = qua[j].ans;                  //不存在则新建
+                    dag.node[dag.num].op = qua[j].op;
+                    if (judge_sign(qua[j].num1) != -1)
+                        dag.node[dag.num].left = judge_sign(qua[j].num1);
+                    else
+                        dag.node[dag.num].left = judge_m_sign(qua[j].num1);
+                    if (judge_sign(qua[j].num2) != -1)
+                        dag.node[dag.num].right = judge_sign(qua[j].num2);
+                    else
+                        dag.node[dag.num].right = judge_m_sign(qua[j].num2);
+                    dag.num++;
                 }
             }
-        }*/
+        }
         //cout << dag.num << endl;
-        makequa(dag,out_num);
+        //if (j == 1) break;
+        j++;
     }
+    /*if (dag.num > 2)
+    {
+        cout << dag.node[2].m_sign.name << endl;
+        if (!dag.node[2].sign.empty())
+        {
+            list<token>::iterator p;
+            for (p = dag.node[2].sign.begin(); p != dag.node[2].sign.end(); ++p)
+            {
+                cout << (*p).name << " " << (*p).type << endl;
+            }
+        }
+    }*/
+    //cout << dag.num << endl;
 }
 
 void make_Sytab(Quatemion *qua_out,int out_num,middle* dd,middle* mi)
@@ -497,7 +542,21 @@ void optimizequa_main()
 	inputqua(qua, fname, qua_num);
 	//cout << qua[2].ans.type << endl;
 	qua_out_pre(qua, qua_out, qua_num);
+	qua_out_pre(qua, qua_out2,qua_num);
 	cout << endl << "中间代码优化：" << endl;
-	optimizequa(1, dag);
+	optimizequa(qua,dag,qua_num);
+	makequa(dag,out_num,qua_out);
+	while(1)
+    {
+        optimizequa(qua_out,dag,out_num);
+        makequa(dag,out_num2,qua_out2);
+        //qua_output_s(qua_out2,out_num2);
+        if(!isquaeq(qua_out,qua_out2,out_num,out_num2))
+            qua_ass(qua_out,qua_out2,out_num,out_num2);
+        else
+            break;
+    }
+    qua_output_s(qua_out,out_num);
+    qua_output(qua_out,out_num);
 	make_Sytab(qua_out,out_num,dd,mi);
 }

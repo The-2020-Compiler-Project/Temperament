@@ -19,9 +19,17 @@ extern void optimizequa_main();
 
 extern void objectcode_main();
 
+extern void yufa_main();
+
+extern void sytab_main();
+
 int main()
 {
     token_output();
+    cout << "按任意键进行下一阶段。。。" << endl;
+    getch();
+    cout << endl << "语法分析：" << endl;
+    yufa_main();
     cout << "按任意键进行下一阶段。。。" << endl;
     getch();
     cout << endl << "中间代码生成：" << endl;
@@ -29,6 +37,9 @@ int main()
 	cout << "按任意键进行下一阶段。。。" << endl;
     getch();
     optimizequa_main();
+    cout << "按任意键进行下一阶段。。。" << endl;
+    getch();
+    sytab_main();
 	cout << "按任意键进行下一阶段。。。" << endl;
     getch();
 	objectcode_main();
